@@ -85,7 +85,7 @@ const EmptyState: React.FC<{ theme: keyof typeof themes }> = ({ theme }) => (
     `}>
         <p>Enter a reference to start reading</p>
         <p className="text-sm mt-2 opacity-70">
-            Example: "jn 3:16" or "rv 21:1-4"
+        Example: &quot;jn 3:16&quot; or &quot;rv 21:1-4&quot;
         </p>
     </div>
 );
@@ -119,7 +119,7 @@ const PassageContent: React.FC<PassageContentProps> = ({
 // Helper function to format the Bible content
 const formatContent = (content: string, settings: Settings) => {
     // Clean the HTML and remove special characters
-    let cleanContent = content
+    const cleanContent = content
         .replace(/<p.*?>/g, '') // Remove p tags
         .replace(/<\/p>/g, '\n') // Replace closing p tags with newlines
         .replace(/¶/g, '') // Remove paragraph marks
@@ -187,10 +187,10 @@ const formatContent = (content: string, settings: Settings) => {
 };
 
 // Optional: Animation variants for content transitions
-const contentVariants = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -20 }
-};
+// const contentVariants = {
+//     initial: { opacity: 0, y: 20 },
+//     animate: { opacity: 1, y: 0 },
+//     exit: { opacity: 0, y: -20 }
+// };
 
 export default BibleContent;

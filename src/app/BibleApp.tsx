@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { TopBar } from './components/TopBar';
 import { SettingsModal } from './components/SettingsModal';
 import { BibleContent } from './components/BibleContent';
@@ -45,7 +45,7 @@ useEffect(() => {
                   isFavorite: favorites.includes(bible.id)
               }));
           
-          const sortedVersions = englishVersions.sort((a: { isFavorite: any; name: string }, b: { isFavorite: any; name: any }) => {
+          const sortedVersions = englishVersions.sort((a: { isFavorite: boolean; name: string }, b: { isFavorite: boolean; name: string }) => {
               if (a.isFavorite === b.isFavorite) {
                   return a.name.localeCompare(b.name);
               }
@@ -87,7 +87,7 @@ const toggleFavorite = (versionId: string) => {
 };
 
 // Update handleSearch function
-const handleSearch = async () => {
+const handleSearch = useCallback(async () => {
   if (!bibleId) {
       setError('Please wait for Bible versions to load');
       return;
@@ -133,7 +133,7 @@ const handleSearch = async () => {
   } finally {
       setLoading(false);
   }
-};
+}, [bibleId, query, settings.showVerseNumbers]);
 
 
 
@@ -143,7 +143,7 @@ useEffect(() => {
     if (bibleId && versions.length > 0) {
         handleSearch()
     }
-}, [bibleId, versions.length])
+}, [bibleId, versions.length, handleSearch])
 
 
 return (

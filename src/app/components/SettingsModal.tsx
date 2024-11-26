@@ -20,6 +20,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     onSettingsChange,
     theme
 }) => {
+    // Handle escape key press
+    useEffect(() => {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+
+        document.addEventListener('keydown', handleEscape);
+        return () => document.removeEventListener('keydown', handleEscape);
+    }, [onClose]);
+    
     if (!isOpen) return null;
 
     // Generic setting update handler
@@ -33,15 +43,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         });
     };
 
-    // Handle escape key press
-    useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-        };
-
-        document.addEventListener('keydown', handleEscape);
-        return () => document.removeEventListener('keydown', handleEscape);
-    }, [onClose]);
+    
 
     return (
         <div 

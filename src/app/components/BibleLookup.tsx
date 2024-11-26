@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react';
-import { Book, ChevronDown } from 'lucide-react';
+import { Book } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
