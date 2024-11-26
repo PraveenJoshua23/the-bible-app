@@ -5,7 +5,6 @@ const API_KEY = process.env.NEXT_PUBLIC_BIBLE_API_KEY;
 
 export async function GET() {
     try {
-        console.log('API Key present:', !!process.env.NEXT_PUBLIC_BIBLE_API_KEY);
         const response = await fetch(`${API_URL}/bibles`, {
             headers: {
                 'api-key': API_KEY!
