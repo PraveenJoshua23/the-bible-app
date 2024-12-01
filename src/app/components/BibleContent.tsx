@@ -2,6 +2,7 @@
 import React from 'react';
 import { themes, fonts, fontSizes } from '../utils/themes';
 import type { BiblePassage, Settings } from '../types/bible';
+import { formatReference } from '../utils/referenceFormatter';
 
 interface BibleContentProps {
     result: BiblePassage | null;
@@ -9,6 +10,7 @@ interface BibleContentProps {
     error: string;
     settings: Settings;
     theme: keyof typeof themes;
+    query: string; 
 }
 
 export const BibleContent: React.FC<BibleContentProps> = ({
@@ -16,11 +18,12 @@ export const BibleContent: React.FC<BibleContentProps> = ({
     loading,
     error,
     settings,
-    theme
+    theme,
+    query
 }) => {
     return (
-        <div className={`pt-24 pb-8 px-4 ${themes[theme].contentBg}`}>
-            <div className="max-w-2xl mx-auto">
+        <div className="pt-24 pb-8">
+            <div className={`max-w-2xl mx-auto px-4 py-8 rounded-md ${themes[theme].contentBg}`}>
                 {loading && <LoadingState theme={theme} />}
                 {error && <ErrorState error={error} theme={theme} />}
                 {result && !loading && (
@@ -28,6 +31,7 @@ export const BibleContent: React.FC<BibleContentProps> = ({
                         result={result}
                         settings={settings}
                         theme={theme}
+                        query={query}
                     />
                 )}
                 {!result && !loading && !error && (
@@ -94,20 +98,26 @@ interface PassageContentProps {
     result: BiblePassage;
     settings: Settings;
     theme: keyof typeof themes;
+    query: string;
 }
+
 
 const PassageContent: React.FC<PassageContentProps> = ({
     result,
     settings,
-    theme
+    theme,
+    query
 }) => {
+    // Format the reference using our new utility with original query
+    const formattedReference = formatReference(result.reference, query);
+
     return (
         <div className={`${fonts[settings.font]} leading-relaxed`}>
             <h2 className={`
                 text-2xl font-semibold mb-6 text-center
                 ${themes[theme].text}
             `}>
-                {result.reference}
+                {formattedReference}
             </h2>
             <div className={fontSizes[settings.fontSize]}>
                 {formatContent(result.content, settings)}

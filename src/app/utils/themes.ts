@@ -1,6 +1,6 @@
 export const themes = {
     light: {
-        bg: 'bg-white',
+        bg: 'bg-gray-100',
         text: 'text-gray-900',
         topBar: 'bg-white border-b',
         contentBg: 'bg-white',

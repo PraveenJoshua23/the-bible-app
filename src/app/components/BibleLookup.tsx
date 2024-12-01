@@ -9,6 +9,9 @@ import {
 } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button";
 import { themes } from '../utils/themes';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+
+
 
 // Bible structure data
 const BIBLE_BOOKS = [
@@ -82,6 +85,15 @@ const BIBLE_BOOKS = [
     { name: 'Revelation', abbr: 'rev', chapters: 22 },
 ];
 
+// Split books into Old and New Testament
+const OLD_TESTAMENT = BIBLE_BOOKS.slice(0, 39);
+const NEW_TESTAMENT = BIBLE_BOOKS.slice(39);
+
+interface BibleLookupProps {
+  onSelect: (reference: string) => void;
+  theme: keyof typeof themes;
+}
+
 interface BibleLookupProps {
   onSelect: (reference: string) => void;
   theme: keyof typeof themes;
@@ -107,6 +119,25 @@ export const BibleLookup: React.FC<BibleLookupProps> = ({ onSelect, theme }) => 
     }
   };
 
+  const BookSelection: React.FC<{ books: typeof BIBLE_BOOKS }> = ({ books }) => (
+    <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto">
+      {books.map((book) => (
+        <Button
+          key={book.abbr}
+          variant={selectedBook?.abbr === book.abbr ? "default" : "outline"}
+          className="text-sm"
+          onClick={() => {
+            setSelectedBook(book);
+            setSelectedChapter(null);
+            setSelectedVerse(null);
+          }}
+        >
+          {book.name}
+        </Button>
+      ))}
+    </div>
+  );
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
@@ -120,26 +151,24 @@ export const BibleLookup: React.FC<BibleLookupProps> = ({ onSelect, theme }) => 
       </PopoverTrigger>
       <PopoverContent className={`w-80 p-4 ${themes[theme].dropdownBg} ${themes[theme].text}`}>
         <div className="space-y-4">
-          {/* Book Selection */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Select Book</label>
-            <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto">
-              {BIBLE_BOOKS.map((book) => (
-                <Button
-                  key={book.abbr}
-                  variant={selectedBook?.abbr === book.abbr ? "default" : "outline"}
-                  className="text-sm"
-                  onClick={() => {
-                    setSelectedBook(book);
-                    setSelectedChapter(null);
-                    setSelectedVerse(null);
-                  }}
-                >
-                  {book.name}
-                </Button>
-              ))}
+          {/* Testament Tabs */}
+          <Tabs defaultValue="old" className="w-full">
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="old">Old Testament</TabsTrigger>
+              <TabsTrigger value="new">New Testament</TabsTrigger>
+            </TabsList>
+            
+            {/* Book Selection */}
+            <div className="mt-4">
+              <label className="block text-sm font-medium mb-1">Select Book</label>
+              <TabsContent value="old">
+                <BookSelection books={OLD_TESTAMENT} />
+              </TabsContent>
+              <TabsContent value="new">
+                <BookSelection books={NEW_TESTAMENT} />
+              </TabsContent>
             </div>
-          </div>
+          </Tabs>
 
           {/* Chapter Selection */}
           {selectedBook && (
