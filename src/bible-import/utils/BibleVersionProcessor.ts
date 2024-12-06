@@ -115,7 +115,7 @@ export class BibleVersionProcessor {
         verses.forEach(verse => {
             try {
                 verseInputSchema.parse(verse);
-            } catch (error) {
+            } catch  {
                 throw new Error(`Invalid verse data in ${bookAbbr} ${chapterNumber}:${verse.number}`);
             }
         });
