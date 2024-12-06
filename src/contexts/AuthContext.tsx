@@ -22,6 +22,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const loadUserPreferences = async (userId: string) => {
+      if (!db) {
+        throw new Error('Firestore instance is not initialized');
+      }
       const docRef = doc(db, 'users', userId);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
@@ -29,6 +32,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
+    if (!auth) {
+      throw new Error('Firebase auth instance is not initialized');
+    }
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       setUser(user);
       if (user) {
@@ -44,10 +50,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithGoogle = async () => {
     try {
+      if (!auth) {
+        throw new Error('Firebase auth instance is not initialized');
+      }
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       const result = await signInWithPopup(auth, provider);
-      
+
+      if (!db) {
+        throw new Error('Firestore instance is not initialized');
+      }
       const userRef = doc(db, 'users', result.user.uid);
       const userDoc = await getDoc(userRef);
       
@@ -82,7 +94,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signOut = () => auth.signOut();
+  
+  const signOut = async () => { 
+    if (!auth) {
+      throw new Error('Firebase auth instance is not initialized');
+    }
+    await auth.signOut();
+  };
 
   return (
     <AuthContext.Provider value={{ user, loading, userPreferences, signInWithGoogle, signOut }}>
