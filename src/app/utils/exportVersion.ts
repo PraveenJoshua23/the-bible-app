@@ -1,4 +1,3 @@
-
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -31,6 +30,18 @@ interface VersionExport {
   }>;
 }
 
+interface Chapter {
+  text: string;
+}
+
+interface Book {
+  chapters: Record<string, Chapter>;
+}
+
+interface Progress {
+  books: Record<string, Book>;
+}
+
 export async function exportVersion(
   details: {
     name: string;
@@ -43,7 +54,7 @@ export async function exportVersion(
     // Read the progress file
     const progressPath = path.join(process.cwd(), 'src/bible-import/processed/progress.json');
     const progressData = await fs.readFile(progressPath, 'utf-8');
-    const progress = JSON.parse(progressData);
+    const progress: Progress = JSON.parse(progressData);
 
     // Create the version export
     const versionExport: VersionExport = {
@@ -72,8 +83,8 @@ export async function exportVersion(
     };
 
     // Convert the progress data into the Bible app format
-    Object.entries(progress.books).forEach(([bookId, bookData]: [string, any]) => {
-      Object.entries(bookData.chapters).forEach(([chapter, chapterData]: [string, any]) => {
+    Object.entries(progress.books).forEach(([bookId, bookData]: [string, Book]) => {
+      Object.entries(bookData.chapters).forEach(([chapter, chapterData]: [string, Chapter]) => {
         versionExport.contents.push({
           book: bookId,
           chapter: parseInt(chapter),

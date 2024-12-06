@@ -63,7 +63,7 @@ export class BibleVersionProcessor {
         let match;
 
         while ((match = verseRegex.exec(text)) !== null) {
-            const [_, verseNumber, verseText] = match;
+            const [ verseNumber, verseText] = match;
             verses.push({
                 number: parseInt(verseNumber),
                 text: verseText.trim().replace(/\n+/g, ' ')

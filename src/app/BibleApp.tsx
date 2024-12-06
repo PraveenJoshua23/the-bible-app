@@ -41,14 +41,23 @@ const BibleApp = () => {
   // Debounce the query to prevent excessive API calls
   const debouncedQuery = useDebounce(query, 800);
 
+  // Handle query changes with typing indication
+  const handleQueryChange = (newQuery: string) => {
+    setQuery(newQuery);
+    setIsUserTyping(true);
+    setError(''); // Clear errors while typing
+  };
+
+  // Reset typing state when debounced query updates
+  useEffect(() => {
+    setIsUserTyping(false);
+  }, [debouncedQuery]);
+
   useEffect(() => {
     const fetchVersions = async () => {
       try {
         const response = await fetch('/api/bible/versions');
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch Bible versions: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Failed to fetch Bible versions: ${response.status}`);
         
         const data = await response.json();
         const favorites = loadFavorites();
@@ -60,14 +69,10 @@ const BibleApp = () => {
             isFavorite: favorites.includes(bible.id)
           }));
         
-        const sortedVersions = englishVersions.sort((a: { isFavorite: boolean; name: string; }, b: { isFavorite: boolean; name: string; }) => {
-          if (a.isFavorite === b.isFavorite) {
-            return a.name.localeCompare(b.name);
-          }
+        setVersions(englishVersions.sort((a: { isFavorite: any; name: string; }, b: { isFavorite: any; name: any; }) => {
+          if (a.isFavorite === b.isFavorite) return a.name.localeCompare(b.name);
           return a.isFavorite ? -1 : 1;
-        });
-        
-        setVersions(sortedVersions);
+        }));
       } catch (err) {
         setError(`Failed to load Bible versions: ${err instanceof Error ? err.message : 'Unknown error'}`);
       }
@@ -77,26 +82,19 @@ const BibleApp = () => {
   }, []);
 
   const toggleFavorite = (versionId: string) => {
-    const updatedVersions = versions.map(v => {
-      if (v.id === versionId) {
-        return { ...v, isFavorite: !v.isFavorite };
-      }
-      return v;
+    setVersions(prevVersions => {
+      const updated = prevVersions.map(v => ({
+        ...v,
+        isFavorite: v.id === versionId ? !v.isFavorite : v.isFavorite
+      }));
+
+      // Save favorites and sort
+      saveFavorites(updated.filter(v => v.isFavorite).map(v => v.id));
+      return updated.sort((a, b) => {
+        if (a.isFavorite === b.isFavorite) return a.name.localeCompare(b.name);
+        return a.isFavorite ? -1 : 1;
+      });
     });
-
-    const favorites = updatedVersions
-      .filter(v => v.isFavorite)
-      .map(v => v.id);
-    saveFavorites(favorites);
-
-    const sortedVersions = updatedVersions.sort((a, b) => {
-      if (a.isFavorite === b.isFavorite) {
-        return a.name.localeCompare(b.name);
-      }
-      return a.isFavorite ? -1 : 1;
-    });
-
-    setVersions(sortedVersions);
   };
 
   const handleSearch = useCallback(async () => {
@@ -105,23 +103,20 @@ const BibleApp = () => {
       return;
     }
 
+    if (isUserTyping) return; // Don't search while user is typing
+
     setLoading(true);
     setError('');
     
     try {
       const parsed = parseQuery(query);
-      if (!parsed) {
-        throw new Error('Invalid search format');
-      }
+      if (!parsed) throw new Error('Invalid search format');
 
-      let passageId;
-      if (parsed.verseStart && parsed.verseEnd && parsed.verseEnd !== parsed.verseStart) {
-        passageId = `${parsed.book}.${parsed.chapter}.${parsed.verseStart}-${parsed.book}.${parsed.chapter}.${parsed.verseEnd}`;
-      } else if (parsed.verseStart) {
-        passageId = `${parsed.book}.${parsed.chapter}.${parsed.verseStart}`;
-      } else {
-        passageId = `${parsed.book}.${parsed.chapter}`;
-      }
+      const passageId = parsed.verseStart && parsed.verseEnd && parsed.verseEnd !== parsed.verseStart
+        ? `${parsed.book}.${parsed.chapter}.${parsed.verseStart}-${parsed.book}.${parsed.chapter}.${parsed.verseEnd}`
+        : parsed.verseStart
+          ? `${parsed.book}.${parsed.chapter}.${parsed.verseStart}`
+          : `${parsed.book}.${parsed.chapter}`;
 
       const response = await fetch(
         `/api/bible/passage?` + new URLSearchParams({
@@ -138,61 +133,51 @@ const BibleApp = () => {
 
       const data = await response.json();
       setResult(data.data);
-      setError('');
     } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch passage');
-        setResult(null); // Clear any previous results when there's an error
-        console.error('Search error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch passage');
+      setResult(null);
     } finally {
       setLoading(false);
     }
-  }, [bibleId, query, settings.showVerseNumbers]);
+  }, [bibleId, query, settings.showVerseNumbers, isUserTyping]);
 
-  // Handle search when debounced query changes
   useEffect(() => {
     if (bibleId && versions.length > 0 && debouncedQuery) {
       handleSearch();
     }
   }, [debouncedQuery, bibleId, versions.length, handleSearch]);
 
-  // Custom query setter that tracks typing state
-  const handleQueryChange = (newQuery: string) => {
-    setQuery(newQuery);
-    setIsUserTyping(true);
-    setError(''); // Clear any existing errors while typing
-  };
-
   return (
     <div className={`min-h-screen ${themes[settings.theme].bg} ${themes[settings.theme].text} transition-colors duration-200`}>
-        <TopBar
-            query={query}
-            setQuery={setQuery}
-            handleSearch={handleSearch}
-            loading={loading}
-            theme={settings.theme}
-            onSettingsClick={() => setIsSettingsOpen(true)}
-            bibleId={bibleId}
-            versions={versions}
-            onVersionSelect={setBibleId}
-            onToggleFavorite={toggleFavorite}
-        />
-        
-        <BibleContent
-            result={result}
-            loading={loading}
-            error={error}
-            settings={settings}
-            theme={settings.theme}
-            query={query}  // Add this prop
-        />
-        
-        <SettingsModal
-            isOpen={isSettingsOpen}
-            onClose={() => setIsSettingsOpen(false)}
-            settings={settings}
-            onSettingsChange={setSettings}
-            theme={settings.theme}
-        />
+      <TopBar
+        query={query}
+        setQuery={handleQueryChange}
+        handleSearch={handleSearch}
+        loading={loading}
+        theme={settings.theme}
+        onSettingsClick={() => setIsSettingsOpen(true)}
+        bibleId={bibleId}
+        versions={versions}
+        onVersionSelect={setBibleId}
+        onToggleFavorite={toggleFavorite}
+      />
+      
+      <BibleContent
+        result={result}
+        loading={loading}
+        error={error}
+        settings={settings}
+        theme={settings.theme}
+        query={query}
+      />
+      
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={settings}
+        onSettingsChange={setSettings}
+        theme={settings.theme}
+      />
     </div>
   );
 };

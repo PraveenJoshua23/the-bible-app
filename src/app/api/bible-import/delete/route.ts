@@ -2,6 +2,21 @@ import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 
+interface Chapter {
+  verseCount?: number;
+}
+
+interface Book {
+  chapters: Record<string, Chapter>;
+}
+
+interface Progress {
+  books: Record<string, Book>;
+  completedChapters: number;
+  totalVerses: number;
+  lastUpdated: string;
+}
+
 export async function DELETE(request: Request) {
   try {
     const { book, chapter } = await request.json();
@@ -9,7 +24,7 @@ export async function DELETE(request: Request) {
 
     // Read existing progress
     const existingData = await fs.readFile(progressPath, 'utf-8');
-    const progress = JSON.parse(existingData);
+    const progress: Progress = JSON.parse(existingData);
 
     // Remove the chapter
     if (progress.books?.[book]?.chapters?.[chapter]) {
@@ -21,11 +36,11 @@ export async function DELETE(request: Request) {
       }
 
       // Recalculate totals
-      const completedChapters = Object.values(progress.books || {}).reduce((sum: number, book: any) => 
+      const completedChapters = Object.values(progress.books || {}).reduce((sum: number, book: Book) => 
         sum + Object.keys(book.chapters || {}).length, 0);
 
-      const totalVerses = Object.values(progress.books || {}).reduce((sum: number, book: any) => 
-        sum + Object.values(book.chapters || {}).reduce((chapterSum: number, chapter: any) => 
+      const totalVerses = Object.values(progress.books || {}).reduce((sum: number, book: Book) => 
+        sum + Object.values(book.chapters || {}).reduce((chapterSum: number, chapter: Chapter) => 
           chapterSum + (chapter.verseCount || 0), 0), 0);
 
       progress.completedChapters = completedChapters;
