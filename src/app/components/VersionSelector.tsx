@@ -34,6 +34,9 @@ export const VersionSelector: React.FC<VersionSelectorProps> = ({
         }
 
         try {
+            if (!db) {
+                throw new Error('Firestore instance is not initialized');
+              }
             const userRef = doc(db, 'users', user.uid);
             const currentFavorites = userPreferences?.favorites?.versions || [];
             const updatedFavorites = currentFavorites.includes(versionId)

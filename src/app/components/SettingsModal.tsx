@@ -47,6 +47,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         // Update Firestore if user is logged in
         if (user) {
             try {
+                if (!db) {
+                    throw new Error('Firestore instance is not initialized');
+                  }
                 const userRef = doc(db, 'users', user.uid);
                 await updateDoc(userRef, {
                     'settings': newSettings
