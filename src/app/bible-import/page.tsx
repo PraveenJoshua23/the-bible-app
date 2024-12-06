@@ -6,6 +6,12 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useRouter } from 'next/navigation';
 import { BIBLE_BOOKS } from '@/bible-import/utils/constants';
+import { BookData } from '@/app/types/bible';
+
+
+interface ProgressData {
+  books: Record<string, { chapters: Record<string, { text: string }> }>;
+}
 
 const BibleImportManager = () => {
   const router = useRouter();
@@ -24,11 +30,11 @@ const BibleImportManager = () => {
   const fetchCompletedChapters = async () => {
     try {
       const response = await fetch('/api/bible-import/progress');
-      const data = await response.json();
+      const data: ProgressData = await response.json();
       
       // Transform the progress data into a map of completed chapters
       const completed: Record<string, number[]> = {};
-      Object.entries(data.books || {}).forEach(([book, bookData]: [string, any]) => {
+      Object.entries(data.books || {}).forEach(([book, bookData]) => {
         completed[book] = Object.keys(bookData.chapters).map(Number);
       });
       setCompletedChapters(completed);
@@ -36,7 +42,6 @@ const BibleImportManager = () => {
       console.error('Error fetching progress:', error);
     }
   };
-
 
   const handleSubmit = async () => {
     setProcessing(true);
@@ -84,8 +89,8 @@ const BibleImportManager = () => {
     return completedChapters[book]?.includes(chapter);
   };
 
-  const books = BIBLE_BOOKS || [];
-  const selectedBookData = books.find((b: { abbr: string; }) => b.abbr === selectedBook);
+  const books: readonly BookData[] = BIBLE_BOOKS || [];
+  const selectedBookData = books.find((b) => b.abbr === selectedBook);
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
@@ -150,7 +155,7 @@ const BibleImportManager = () => {
             {selectedBook && (
                 <div>
                     <label className="block text-sm font-medium mb-2">
-                        Enter Chapter Text (Format: "1 Verse text here. 2 Next verse here.")
+                        Enter Chapter Text (Format: &quot;1 Verse text here. 2 Next verse here.&quot;)
                     </label>
                     <div className="mb-2 p-3 bg-gray-50 rounded text-sm">
                         <strong>Example format:</strong><br />

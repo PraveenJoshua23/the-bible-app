@@ -1,3 +1,10 @@
+
+export interface BibleBook {
+    name: string;
+    abbr: string;
+    chapters: number;
+}
+
 export const BIBLE_BOOKS = [
     { name: 'Genesis', abbr: 'gen', chapters: 50 },
     { name: 'Exodus', abbr: 'exo', chapters: 40 },

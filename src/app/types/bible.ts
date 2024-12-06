@@ -46,3 +46,9 @@ export interface Settings {
     verseDisplay: 'paragraph' | 'list';
     fontSize: 'small' | 'medium' | 'large' | 'xl';
 }
+
+export interface BookData {
+  abbr: string;
+  name: string;
+  chapters: number;
+}

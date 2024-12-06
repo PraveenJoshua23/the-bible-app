@@ -1,10 +1,11 @@
-// src/app/page.tsx
+
+import { AuthProvider } from '@/contexts/AuthContext';
 import BibleApp from "./BibleApp"
 
-export default function Home() {
+export default function Page() {
   return (
-    <main>
+    <AuthProvider>
       <BibleApp />
-    </main>
-  )
+    </AuthProvider>
+  );
 }

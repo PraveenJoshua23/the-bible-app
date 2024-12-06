@@ -4,6 +4,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Star, StarOff, ChevronDown } from 'lucide-react';
 import { themes } from '../utils/themes';
 import type { BibleVersionWithFavorite } from '../types/bible';
+import { useAuth } from '@/contexts/AuthContext';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
 
 interface VersionSelectorProps {
     versions: BibleVersionWithFavorite[];
@@ -20,8 +23,32 @@ export const VersionSelector: React.FC<VersionSelectorProps> = ({
     onToggleFavorite,
     theme
 }) => {
+    const { user, userPreferences } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    
+    const handleToggleFavorite = async (versionId: string) => {
+        if (!user) {
+            onToggleFavorite(versionId);
+            return;
+        }
+
+        try {
+            const userRef = doc(db, 'users', user.uid);
+            const currentFavorites = userPreferences?.favorites?.versions || [];
+            const updatedFavorites = currentFavorites.includes(versionId)
+                ? currentFavorites.filter(id => id !== versionId)
+                : [...currentFavorites, versionId];
+
+            await updateDoc(userRef, {
+                'favorites.versions': updatedFavorites
+            });
+
+            onToggleFavorite(versionId);
+        } catch (error) {
+            console.error('Error updating favorites:', error);
+        }
+    };
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -78,6 +105,7 @@ export const VersionSelector: React.FC<VersionSelectorProps> = ({
                             theme={theme}
                             onVersionSelect={onVersionSelect}
                             onToggleFavorite={onToggleFavorite}
+                            handleToggleFavorite={handleToggleFavorite}
                             selectedVersion={selectedVersion}
                             closeDropdown={() => setIsOpen(false)}
                         />
@@ -100,12 +128,12 @@ export const VersionSelector: React.FC<VersionSelectorProps> = ({
     );
 };
 
-// SearchVersions component remains the same
 interface SearchVersionsProps {
     versions: BibleVersionWithFavorite[];
     theme: keyof typeof themes;
     onVersionSelect: (id: string) => void;
     onToggleFavorite: (id: string) => void;
+    handleToggleFavorite: (id: string) => void; // Add this
     selectedVersion: string;
     closeDropdown: () => void;
 }
@@ -115,6 +143,7 @@ const SearchVersions: React.FC<SearchVersionsProps> = ({
     theme,
     onVersionSelect,
     onToggleFavorite,
+    handleToggleFavorite,
     selectedVersion,
     closeDropdown
 }) => {
@@ -155,6 +184,7 @@ const SearchVersions: React.FC<SearchVersionsProps> = ({
                                 closeDropdown();
                             }}
                             onToggleFavorite={() => onToggleFavorite(version.id)}
+                            handleToggleFavorite={handleToggleFavorite}
                         />
                     ))}
                 </div>
@@ -163,21 +193,24 @@ const SearchVersions: React.FC<SearchVersionsProps> = ({
     );
 };
 
-// VersionOption component remains the same
+
 interface VersionOptionProps {
     version: BibleVersionWithFavorite;
     theme: keyof typeof themes;
     isSelected: boolean;
     onSelect: () => void;
     onToggleFavorite: () => void;
+    handleToggleFavorite: (id: string) => void;
 }
+
+
 
 const VersionOption: React.FC<VersionOptionProps> = ({
     version,
     theme,
     isSelected,
     onSelect,
-    onToggleFavorite
+    handleToggleFavorite
 }) => (
     <div
         className={`
@@ -211,7 +244,7 @@ const VersionOption: React.FC<VersionOptionProps> = ({
         <button
             onClick={(e) => {
                 e.stopPropagation();
-                onToggleFavorite();
+                handleToggleFavorite(version.id);
             }}
             className={`
                 ml-2 p-1 rounded-full hover:bg-opacity-20

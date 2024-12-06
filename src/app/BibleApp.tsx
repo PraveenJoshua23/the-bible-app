@@ -8,6 +8,7 @@ import { parseQuery } from './utils/bibleParser';
 import { themes } from './utils/themes';
 import type { BibleVersion, BiblePassage, Settings, BibleVersionWithFavorite } from './types/bible';
 import { loadFavorites, saveFavorites } from './utils/favorites';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Custom hook for debouncing values
 const useDebounce = <T,>(value: T, delay: number): T => {
@@ -30,13 +31,44 @@ const BibleApp = () => {
   const [loading, setLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isUserTyping, setIsUserTyping] = useState(false);
-  const [settings, setSettings] = useState<Settings>({
-    showVerseNumbers: true,
-    font: 'sans',
-    theme: 'light',
-    verseDisplay: 'paragraph',
-    fontSize: 'medium'
-  });
+  const { userPreferences } = useAuth();
+  const [settings, setSettings] = useState<Settings>(() => 
+    userPreferences?.settings || {
+      showVerseNumbers: true,
+      font: 'sans',
+      theme: 'light',
+      verseDisplay: 'paragraph',
+      fontSize: 'medium'
+    });
+
+    useEffect(() => {
+      const fetchVersions = async () => {
+          try {
+              const response = await fetch('/api/bible/versions');
+              if (!response.ok) return;
+              
+              const data = await response.json();
+              const englishVersions = data.data
+                  .filter((bible: BibleVersion) => bible.language.name === 'English')
+                  .map((bible: BibleVersion) => ({
+                      ...bible,
+                      isFavorite: userPreferences?.favorites?.versions?.includes(bible.id) || false
+                  }));
+              
+              setVersions(englishVersions);
+          } catch (error) {
+              console.error('Error fetching versions:', error);
+          }
+      };
+
+      fetchVersions();
+  }, [userPreferences]);
+
+    useEffect(() => {
+      if (userPreferences?.settings) {
+        setSettings(userPreferences.settings);
+      }
+    }, [userPreferences]);
 
   // Debounce the query to prevent excessive API calls
   const debouncedQuery = useDebounce(query, 800);
@@ -69,7 +101,7 @@ const BibleApp = () => {
             isFavorite: favorites.includes(bible.id)
           }));
         
-        setVersions(englishVersions.sort((a: { isFavorite: any; name: string; }, b: { isFavorite: any; name: any; }) => {
+        setVersions(englishVersions.sort((a: { isFavorite: boolean; name: string; }, b: { isFavorite: boolean; name: string; }) => {
           if (a.isFavorite === b.isFavorite) return a.name.localeCompare(b.name);
           return a.isFavorite ? -1 : 1;
         }));
@@ -183,3 +215,4 @@ const BibleApp = () => {
 };
 
 export default BibleApp;
+

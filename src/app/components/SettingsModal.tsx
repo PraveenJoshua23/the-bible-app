@@ -2,8 +2,11 @@
 
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { doc, updateDoc } from 'firebase/firestore';
 import { themes, fonts, fontSizes } from '../utils/themes';
 import type { Settings } from '../types/bible';
+import { db } from '@/lib/firebase/config';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -20,6 +23,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     onSettingsChange,
     theme
 }) => {
+    const { user, userPreferences } = useAuth();
+
+    // Load settings from Firestore on init
+    useEffect(() => {
+        if (userPreferences?.settings) {
+            onSettingsChange(userPreferences.settings);
+        }
+    }, [userPreferences, onSettingsChange]);
+
+    // Generic setting update handler
+    const updateSetting = async <K extends keyof Settings>(
+        key: K,
+        value: Settings[K]
+    ) => {
+        const newSettings = {
+            ...settings,
+            [key]: value
+        };
+        
+        onSettingsChange(newSettings);
+
+        // Update Firestore if user is logged in
+        if (user) {
+            try {
+                const userRef = doc(db, 'users', user.uid);
+                await updateDoc(userRef, {
+                    'settings': newSettings
+                });
+            } catch (error) {
+                console.error('Error updating settings:', error);
+            }
+        }
+    };
     // Handle escape key press
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
@@ -31,19 +67,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }, [onClose]);
     
     if (!isOpen) return null;
-
-    // Generic setting update handler
-    const updateSetting = <K extends keyof Settings>(
-        key: K,
-        value: Settings[K]
-    ) => {
-        onSettingsChange({
-            ...settings,
-            [key]: value
-        });
-    };
-
-    
 
     return (
         <div 

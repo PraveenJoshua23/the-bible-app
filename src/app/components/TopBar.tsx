@@ -1,9 +1,10 @@
 import React from 'react';
-import { Cross, Search, Settings } from 'lucide-react';
+import { Search, Settings } from 'lucide-react';
 import { VersionSelector } from './VersionSelector';
 import { BibleLookup } from './BibleLookup';
 import { themes } from '../utils/themes';
 import type { BibleVersionWithFavorite } from '../types/bible';
+import { AuthButton } from './AuthButton';
 
 interface TopBarProps {
   query: string;
@@ -57,8 +58,9 @@ export const TopBar: React.FC<TopBarProps> = ({
           <SettingsButton onClick={onSettingsClick} theme={theme} />
         </div>
 
-        {/* Empty div for balance */}
-        <div className="w-[88px]"></div>
+        <div>
+            <AuthButton />
+        </div>
       </div>
     </div>
   );
