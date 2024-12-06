@@ -124,7 +124,7 @@ export async function POST(request: Request) {
     try {
       const existingData = await fs.readFile(progressPath, 'utf-8');
       existingProgress = JSON.parse(existingData);
-    } catch (error) {
+    } catch {
       console.log('No existing progress file, creating new one');
     }
 

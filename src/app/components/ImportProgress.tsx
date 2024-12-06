@@ -110,7 +110,6 @@ const ImportProgress = () => {
 
       if (!response.ok) throw new Error('Export failed');
 
-      const data = await response.json();
       toast.success('Version exported successfully');
       setShowExportDialog(false);
     } catch (error) {

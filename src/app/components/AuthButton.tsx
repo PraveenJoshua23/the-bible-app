@@ -2,6 +2,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { LogIn, LogOut } from 'lucide-react';
+import Image from 'next/image';
 
 export const AuthButton = () => {
   const { user, signInWithGoogle, signOut } = useAuth();
@@ -14,10 +15,12 @@ export const AuthButton = () => {
     >
       {user ? (
         <>
-          <img 
+          <Image 
             src={user.photoURL || ''} 
             alt={user.displayName || ''} 
-            className="w-6 h-6 rounded-full"
+            width={24}
+            height={24}
+            className="rounded-full"
           />
           <LogOut className="h-4 w-4" />
         </>
