@@ -27,7 +27,6 @@ export const VersionSelector: React.FC<VersionSelectorProps> = ({
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
-    const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom');
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
@@ -38,27 +37,6 @@ export const VersionSelector: React.FC<VersionSelectorProps> = ({
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
-
-    useEffect(() => {
-        const calculatePosition = () => {
-            if (!buttonRef.current) return;
-            
-            const buttonRect = buttonRef.current.getBoundingClientRect();
-            const windowHeight = window.innerHeight;
-            const spaceBelow = windowHeight - buttonRect.bottom;
-            const spaceAbove = buttonRect.top;
-            
-            if (spaceBelow < 400 && spaceAbove > spaceBelow) {
-                setDropdownPosition('top');
-            } else {
-                setDropdownPosition('bottom');
-            }
-        };
-
-        if (isOpen) {
-            calculatePosition();
-        }
-    }, [isOpen]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
