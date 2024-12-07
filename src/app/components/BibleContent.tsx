@@ -22,7 +22,7 @@ export const BibleContent: React.FC<BibleContentProps> = ({
     query
 }) => {
     return (
-        <div className="pt-24 pb-8">
+        <div className="pt-16 md:pt-24 pb-8">
             <div className={`max-w-2xl mx-auto px-4 py-8 rounded-md ${themes[theme].contentBg}`}>
                 {loading && <LoadingState theme={theme} />}
                 {error && <ErrorState error={error} theme={theme} />}
