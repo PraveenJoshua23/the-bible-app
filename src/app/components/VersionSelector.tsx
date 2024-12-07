@@ -17,7 +17,7 @@ interface VersionSelectorProps {
 }
 
 export const VersionSelector: React.FC<VersionSelectorProps> = ({
-    versions = [], // Provide default empty array
+    versions = [],
     selectedVersion,
     onVersionSelect,
     onToggleFavorite,
@@ -26,7 +26,63 @@ export const VersionSelector: React.FC<VersionSelectorProps> = ({
     const { user, userPreferences } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom');
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768); // md breakpoint
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    useEffect(() => {
+        const calculatePosition = () => {
+            if (!buttonRef.current) return;
+            
+            const buttonRect = buttonRef.current.getBoundingClientRect();
+            const windowHeight = window.innerHeight;
+            const spaceBelow = windowHeight - buttonRect.bottom;
+            const spaceAbove = buttonRect.top;
+            
+            if (spaceBelow < 400 && spaceAbove > spaceBelow) {
+                setDropdownPosition('top');
+            } else {
+                setDropdownPosition('bottom');
+            }
+        };
+
+        if (isOpen) {
+            calculatePosition();
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            // Prevent body scroll on mobile when dropdown is open
+            if (isMobile) {
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            if (isMobile) {
+                document.body.style.overflow = '';
+            }
+        };
+    }, [isOpen, isMobile]);
+
     const handleToggleFavorite = async (versionId: string) => {
         if (!user) {
             onToggleFavorite(versionId);
@@ -36,7 +92,7 @@ export const VersionSelector: React.FC<VersionSelectorProps> = ({
         try {
             if (!db) {
                 throw new Error('Firestore instance is not initialized');
-              }
+            }
             const userRef = doc(db, 'users', user.uid);
             const currentFavorites = userPreferences?.favorites?.versions || [];
             const updatedFavorites = currentFavorites.includes(versionId)
@@ -53,30 +109,16 @@ export const VersionSelector: React.FC<VersionSelectorProps> = ({
         }
     };
 
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    // Find selected version data with null check
-    const selectedVersionData = Array.isArray(versions) 
-        ? versions.find(v => v.id === selectedVersion)
-        : undefined;
+    const selectedVersionData = versions.find(v => v.id === selectedVersion);
 
     return (
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative flex-1 md:flex-none" ref={dropdownRef}>
             <button
+                ref={buttonRef}
                 onClick={() => setIsOpen(!isOpen)}
                 className={`
-                    px-4 py-2 rounded-lg border shadow-sm flex items-center gap-2 
-                    min-w-[120px] justify-between transition-colors
+                    w-full md:w-auto px-4 py-2 rounded-lg border shadow-sm 
+                    flex items-center gap-2 justify-between transition-colors
                     ${themes[theme].buttonBg} ${themes[theme].buttonText}
                     ${isOpen ? themes[theme].activeBg : ''}
                 `}
@@ -92,40 +134,38 @@ export const VersionSelector: React.FC<VersionSelectorProps> = ({
                 />
             </button>
 
-            {isOpen && Array.isArray(versions) && versions.length > 0 && (
-                <div 
-                    className={`
-                        absolute right-0 mt-2 w-64 rounded-lg shadow-lg border 
-                        ${themes[theme].dropdownBg} ${themes[theme].text}
-                        max-h-[400px] overflow-y-auto z-50
-                    `}
-                    role="listbox"
-                    aria-label="Bible versions list"
-                >
-                    <div className="p-2">
-                        <SearchVersions 
-                            versions={versions}
-                            theme={theme}
-                            onVersionSelect={onVersionSelect}
-                            onToggleFavorite={onToggleFavorite}
-                            handleToggleFavorite={handleToggleFavorite}
-                            selectedVersion={selectedVersion}
-                            closeDropdown={() => setIsOpen(false)}
-                        />
+            {isOpen && (
+                <>
+                    {isMobile && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 z-40" />
+                    )}
+                    <div 
+                        className={`
+                            ${isMobile 
+                                ? 'fixed inset-x-0 bottom-0 rounded-t-lg max-h-[80vh] z-50' 
+                                : 'absolute right-0 mt-2 w-64 rounded-lg'}
+                            ${themes[theme].dropdownBg} ${themes[theme].text}
+                            shadow-lg border overflow-hidden
+                        `}
+                    >
+                        <div className="max-h-[60vh] overflow-y-auto">
+                            <div className="p-4">
+                                <SearchVersions 
+                                    versions={versions}
+                                    theme={theme}
+                                    onVersionSelect={(id) => {
+                                        onVersionSelect(id);
+                                        setIsOpen(false);
+                                    }}
+                                    onToggleFavorite={onToggleFavorite}
+                                    handleToggleFavorite={handleToggleFavorite}
+                                    selectedVersion={selectedVersion}
+                                    closeDropdown={() => setIsOpen(false)}
+                                />
+                            </div>
+                        </div>
                     </div>
-                </div>
-            )}
-
-            {isOpen && (!Array.isArray(versions) || versions.length === 0) && (
-                <div 
-                    className={`
-                        absolute right-0 mt-2 w-64 rounded-lg shadow-lg border 
-                        ${themes[theme].dropdownBg} ${themes[theme].text}
-                        p-4 text-center
-                    `}
-                >
-                    Loading versions...
-                </div>
+                </>
             )}
         </div>
     );
