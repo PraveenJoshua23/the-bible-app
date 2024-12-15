@@ -26,6 +26,7 @@ export const VersionSelector: React.FC<VersionSelectorProps> = ({
     const { user, userPreferences } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const [searchQuery, setSearchQuery] = useState('');
     const buttonRef = useRef<HTMLButtonElement>(null);
     const [isMobile, setIsMobile] = useState(false);
 
@@ -135,10 +136,13 @@ export const VersionSelector: React.FC<VersionSelectorProps> = ({
                                         onVersionSelect(id);
                                         setIsOpen(false);
                                     }}
+
                                     onToggleFavorite={onToggleFavorite}
                                     handleToggleFavorite={handleToggleFavorite}
                                     selectedVersion={selectedVersion}
                                     closeDropdown={() => setIsOpen(false)}
+                                    searchQuery={searchQuery}         
+                                    setSearchQuery={setSearchQuery}  
                                 />
                             </div>
                         </div>
@@ -154,8 +158,10 @@ interface SearchVersionsProps {
     theme: keyof typeof themes;
     onVersionSelect: (id: string) => void;
     onToggleFavorite: (id: string) => void;
-    handleToggleFavorite: (id: string) => void; // Add this
+    handleToggleFavorite: (id: string) => void; 
     selectedVersion: string;
+    searchQuery: string;     
+    setSearchQuery: (query: string) => void;    
     closeDropdown: () => void;
 }
 
@@ -166,13 +172,17 @@ const SearchVersions: React.FC<SearchVersionsProps> = ({
     onToggleFavorite,
     handleToggleFavorite,
     selectedVersion,
+    searchQuery, 
+    setSearchQuery,
     closeDropdown
 }) => {
-    const [searchQuery, setSearchQuery] = useState('');
+    
     
     const filteredVersions = versions.filter(version => 
         version.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        version.abbreviation.toLowerCase().includes(searchQuery.toLowerCase())
+        version.abbreviation.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        version.nameLocal?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        version.language.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (

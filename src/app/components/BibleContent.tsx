@@ -69,15 +69,30 @@ const ErrorState: React.FC<{
     error: string; 
     theme: keyof typeof themes;
 }> = ({ error, theme }) => (
+    // <div
+    //     className={`
+    //         text-center p-6 rounded-lg
+    //         ${themes[theme].error}
+    //     `}
+    //     role="alert"
+    // >
+    //     <span className="font-medium">Error: </span>
+    //     {error}
+    // </div>
     <div
         className={`
-            text-center p-6 rounded-lg
+            text-center p-6 rounded-lg space-y-2
             ${themes[theme].error}
         `}
         role="alert"
     >
-        <span className="font-medium">Error: </span>
-        {error}
+        <div className="font-medium">Error loading passage:</div>
+        <div className="text-sm opacity-80 whitespace-pre-wrap">
+            {error}
+        </div>
+        <div className="text-xs opacity-60 mt-2">
+            If this error persists, please try another Bible version or reference.
+        </div>
     </div>
 );
 

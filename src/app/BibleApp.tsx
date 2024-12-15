@@ -6,9 +6,10 @@ import { SettingsModal } from './components/SettingsModal';
 import { BibleContent } from './components/BibleContent';
 import { parseQuery } from './utils/bibleParser';
 import { themes } from './utils/themes';
-import type { BibleVersion, BiblePassage, Settings, BibleVersionWithFavorite } from './types/bible';
-import { loadFavorites, saveFavorites } from './utils/favorites';
+import type {  BiblePassage, Settings, BibleVersionWithFavorite } from './types/bible';
+import {  saveFavorites } from './utils/favorites';
 import { useAuth } from '@/contexts/AuthContext';
+import { getBibleVersions, getBiblePassage } from '@/app/services/bibleService';
 
 // Custom hook for debouncing values
 const useDebounce = <T,>(value: T, delay: number): T => {
@@ -21,6 +22,19 @@ const useDebounce = <T,>(value: T, delay: number): T => {
 
   return debouncedValue;
 };
+
+// Allowed English versions
+const ALLOWED_VERSIONS = new Set(['ASV', 'NKJV', 'FSV', 'BSB', 'TAOVBSI']);
+
+// Supported languages with their exact API language codes
+const SUPPORTED_LANGUAGES = new Set([
+  'English',
+  'Tamil',
+  'Telugu',
+  'Hindi',
+  'Odia',
+  'Korean'
+]);
 
 const BibleApp = () => {
   const [query, setQuery] = useState('jn 1:1');
@@ -43,26 +57,62 @@ const BibleApp = () => {
 
     useEffect(() => {
       const fetchVersions = async () => {
-          try {
-              const response = await fetch('/api/bible/versions');
-              if (!response.ok) return;
-              
-              const data = await response.json();
-              const englishVersions = data.data
-                  .filter((bible: BibleVersion) => bible.language.name === 'English')
-                  .map((bible: BibleVersion) => ({
-                      ...bible,
-                      isFavorite: userPreferences?.favorites?.versions?.includes(bible.id) || false
-                  }));
-              
-              setVersions(englishVersions);
-          } catch (error) {
-              console.error('Error fetching versions:', error);
-          }
+        try {
+          setLoading(true);
+          const versions = await getBibleVersions();
+          const userFavorites = userPreferences?.favorites?.versions || [];
+          
+          // Filter and process versions
+          const filteredVersions = versions.filter((bible) => {
+            const langCode = bible.language?.name || '';
+      
+            // Include Tamil Bible explicitly
+            if (bible.id === 'TAOVBSI') return true;
+      
+            // For English versions, only include allowed versions
+            if (langCode === 'English') {
+              return ALLOWED_VERSIONS.has(bible.abbreviation);
+            }
+      
+            // Include all versions for supported languages
+            return SUPPORTED_LANGUAGES.has(langCode);
+          });
+      
+      
+          // Sort versions
+          const sortedVersions = filteredVersions.map(version => ({
+            ...version,
+            isFavorite: userFavorites.includes(version.id)
+          })).sort((a, b) => {
+            // English versions first
+            if (a.language.name === 'English' && b.language.name !== 'English') return -1;
+            if (a.language.name !== 'English' && b.language.name === 'English') return 1;
+            
+            // Then by language
+            if (a.language.name !== b.language.name) {
+              return a.language.name.localeCompare(b.language.name);
+            }
+            
+            // Then by favorite status
+            if (a.isFavorite !== b.isFavorite) {
+              return a.isFavorite ? -1 : 1;
+            }
+            
+            // Finally by name
+            return a.name.localeCompare(b.name);
+          });
+      
+          setVersions(sortedVersions);
+        } catch (err) {
+          console.error('Version fetching error:', err);
+          setError('Failed to load Bible versions');
+        } finally {
+          setLoading(false);
+        }
       };
-
+  
       fetchVersions();
-  }, [userPreferences]);
+    }, [userPreferences?.favorites?.versions]);
 
     useEffect(() => {
       if (userPreferences?.settings) {
@@ -84,34 +134,6 @@ const BibleApp = () => {
   useEffect(() => {
     setIsUserTyping(false);
   }, [debouncedQuery]);
-
-  useEffect(() => {
-    const fetchVersions = async () => {
-      try {
-        const response = await fetch('/api/bible/versions');
-        if (!response.ok) throw new Error(`Failed to fetch Bible versions: ${response.status}`);
-        
-        const data = await response.json();
-        const favorites = loadFavorites();
-        
-        const englishVersions = data.data
-          .filter((bible: BibleVersion) => bible.language.name === 'English')
-          .map((bible: BibleVersion) => ({
-            ...bible,
-            isFavorite: favorites.includes(bible.id)
-          }));
-        
-        setVersions(englishVersions.sort((a: { isFavorite: boolean; name: string; }, b: { isFavorite: boolean; name: string; }) => {
-          if (a.isFavorite === b.isFavorite) return a.name.localeCompare(b.name);
-          return a.isFavorite ? -1 : 1;
-        }));
-      } catch (err) {
-        setError(`Failed to load Bible versions: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      }
-    };
-
-    fetchVersions();
-  }, []);
 
   const toggleFavorite = (versionId: string) => {
     setVersions(prevVersions => {
@@ -135,7 +157,7 @@ const BibleApp = () => {
       return;
     }
 
-    if (isUserTyping) return; // Don't search while user is typing
+    if (isUserTyping) return;
 
     setLoading(true);
     setError('');
@@ -150,21 +172,13 @@ const BibleApp = () => {
           ? `${parsed.book}.${parsed.chapter}.${parsed.verseStart}`
           : `${parsed.book}.${parsed.chapter}`;
 
-      const response = await fetch(
-        `/api/bible/passage?` + new URLSearchParams({
-          bibleId,
-          passageId,
-          showVerseNumbers: settings.showVerseNumbers.toString()
-        })
+      const response = await getBiblePassage(
+        bibleId,
+        passageId,
+        settings.showVerseNumbers
       );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch passage');
-      }
-
-      const data = await response.json();
-      setResult(data.data);
+      setResult(response.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch passage');
       setResult(null);
